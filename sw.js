@@ -10,7 +10,7 @@
  *   - 外部サイトへのリクエストは一切キャッシュしない（自オリジンのGETのみ扱う）
  */
 
-var CACHE = 'bousai-hub-v3';
+var CACHE = 'bousai-hub-v4';
 var SHELL = [
   './',
   './index.html',
@@ -55,6 +55,24 @@ self.addEventListener('fetch', function (event) {
   // 自オリジンのGET以外（外部サイト・POST等）は素通しする
   if (req.method !== 'GET') return;
   if (new URL(req.url).origin !== self.location.origin) return;
+
+  // データ・スクリプトもネットワーク優先にする。
+  // キャッシュ優先にしていたため、市区町村データを更新しても
+  // 利用者の画面には古いままの内容が出続けるという不具合が起きた（2026-07-31修正）。
+  if (/\.(js|json)$/.test(new URL(req.url).pathname)) {
+    event.respondWith(
+      fetch(req)
+        .then(function (res) {
+          if (res && res.status === 200) {
+            var copy = res.clone();
+            caches.open(CACHE).then(function (c) { c.put(req, copy); });
+          }
+          return res;
+        })
+        .catch(function () { return caches.match(req); })
+    );
+    return;
+  }
 
   // 画面遷移はネットワーク優先（更新を確実に届けるため）
   if (req.mode === 'navigate') {

@@ -714,8 +714,10 @@ function renderDetail(){
 /* =========================================================
    地域変更画面
    ========================================================= */
-/* 都道府県と市区町村をまとめて検索する。
-   「宇土市」「うと」のどちらでも見つかるようにする。 */
+/* 地域選択は2段階。
+   1段目: 都道府県を選ぶ（この段でも市区町村名を直接検索できる）
+   2段目: その都道府県の市区町村を一覧から選ぶ
+   市区町村名を知らなくても一覧から選べるようにするため（2026-07-31 利用者指摘）。 */
 function renderPrefList(){
   var kw = ($('prefSearch').value || '').trim().toLowerCase();
   var box = $('prefList');
@@ -738,13 +740,38 @@ function renderPrefList(){
     b.addEventListener('click', function(){
       state.pendingPref = prefName;
       state.pendingCity = city || null;
-      renderPrefList();
+      // 1段目で都道府県だけを選んだときは、そのまま市区町村の一覧へ進む。
+      // （市区町村名を知らない人が、一覧から選べるようにするため）
+      if (state.regionStep !== 'city' && !city){
+        state.regionStep = 'city';
+        $('prefSearch').value = '';
+      }
       $('prefDecide').disabled = false;
+      renderRegionScreen();
     });
     box.appendChild(b);
     hit++;
   }
 
+  /* ---- 2段目: 選んだ都道府県の市区町村一覧 ---- */
+  if (state.regionStep === 'city' && state.pendingPref){
+    var p0 = findPref(state.pendingPref);
+    var list0 = (typeof CITIES !== 'undefined' && p0) ? (CITIES[p0[3]] || []) : [];
+
+    // 市区町村を指定しない選択肢。県全体の情報だけでよい人向け
+    addRow(state.pendingPref + '（全体）', '市区町村を指定しない', state.pendingPref, null);
+
+    for (var k = 0; k < list0.length; k++){
+      var c0 = list0[k];
+      if (kw && c0[1].toLowerCase().indexOf(kw) < 0 && c0[2].indexOf(kw) < 0) continue;
+      addRow(c0[1], null, state.pendingPref, c0);
+    }
+    $('prefEmpty').hidden = hit > 0;
+    $('prefHint').hidden = true;
+    return;
+  }
+
+  /* ---- 1段目: 都道府県 ---- */
   // キーワードが無いときは都道府県の一覧をそのまま出す
   if (!kw){
     PREFS.forEach(function(p){ addRow(p[0], null, p[0], null); });
@@ -788,6 +815,25 @@ function renderPrefList(){
   $('prefHint').hidden = !!kw;
 }
 
+/* 地域選択画面の見出し・説明・検索欄を、いまの段に合わせて描き直す */
+function renderRegionScreen(){
+  var isCity = (state.regionStep === 'city' && state.pendingPref);
+  $('hdTitle').textContent = isCity ? state.pendingPref : '地域を選ぶ';
+  // 市区町村の段では、都道府県の一覧へ戻れるように必ず戻るボタンを出す
+  $('backBtn').hidden = !isCity && !state.pref;
+  $('regionLead').textContent = isCity
+    ? 'お住まいの市区町村を選んでください。給水所や避難所のお知らせを、その市区町村のページで直接見られます。'
+    : (state.pref
+        ? 'お住まいの都道府県を選んでください。市区町村名を直接入力してさがすこともできます。'
+        : 'はじめに、お住まいの都道府県を選んでください。市区町村名を直接入力してさがすこともできます。');
+  $('prefSearch').placeholder = isCity ? '市区町村名でさがす' : '都道府県・市区町村名でさがす（例：うと）';
+  $('prefDecide').disabled = !state.pendingPref;
+  $('prefDecide').textContent = isCity && state.pendingCity
+    ? ('「' + state.pendingCity[1] + '」に決定')
+    : '決定';
+  renderPrefList();
+}
+
 /* =========================================================
    画面遷移（端末の「戻る」操作にも対応させる）
    ========================================================= */
@@ -807,7 +853,8 @@ function render(){
   $('scrDetail').hidden = state.screen !== 'detail';
   $('scrRegion').hidden = state.screen !== 'region';
 
-  $('backBtn').hidden = isTop || (state.screen === 'region' && !state.pref);
+  $('backBtn').hidden = isTop ||
+    (state.screen === 'region' && !state.pref && state.regionStep !== 'city');
   $('hdRegion').hidden = !(isTop && state.pref);
   if (state.pref) $('hdRegion').textContent = areaLabel();
 
@@ -821,14 +868,11 @@ function render(){
     $('hdTitle').textContent = cat ? cat.title : '防災ハブ';
     renderDetail();
   } else {
-    $('hdTitle').textContent = '地域を選ぶ';
-    $('regionLead').textContent = state.pref
-      ? 'お住まいの地域を選んでください。避難所・給水・停電の情報がこの地域に切り替わります。'
-      : 'はじめに、お住まいの地域を選んでください。避難所・給水・停電の情報がこの地域のものになります。';
     state.pendingPref = state.pref;
     state.pendingCity = state.city;
-    $('prefDecide').disabled = !state.pendingPref;
-    renderPrefList();
+    state.regionStep = 'pref';
+    $('prefSearch').value = '';
+    renderRegionScreen();
   }
   window.scrollTo(0, 0);
 }
@@ -839,9 +883,20 @@ function render(){
 function init(){
   loadState();
 
-  $('backBtn').addEventListener('click', function(){ history.back(); });
+  $('backBtn').addEventListener('click', function(){
+    // 市区町村の一覧を見ているときは、まず都道府県の一覧へ戻す
+    if (state.screen === 'region' && state.regionStep === 'city'){
+      state.regionStep = 'pref';
+      state.pendingCity = null;
+      $('prefSearch').value = '';
+      renderRegionScreen();
+      return;
+    }
+    history.back();
+  });
   $('toRegion').addEventListener('click', function(){ go('region'); });
   $('prefSearch').addEventListener('input', renderPrefList);
+  $('prefSearch').addEventListener('search', renderPrefList);
   $('prefDecide').addEventListener('click', function(){
     if (!state.pendingPref) return;
     var first = !state.pref;
