@@ -377,6 +377,7 @@ var CATEGORIES = [
     sub:'どこへ逃げればよいかを調べる',
     links:[
       {type:'yahooEvac'},
+      {type:'cityOfficial'},
       {type:'yahooMap'},
       {type:'prefPortal'},
       {type:'url', title:'ハザードマップポータル', sub:'近くの避難場所と危険な場所を地図で確認（国土地理院）', url:'https://disaportal.gsi.go.jp/'}
@@ -394,11 +395,10 @@ var CATEGORIES = [
     id:'water', icon:'water', title:'給水・食料の配布',
     sub:'水や食べ物をどこでもらえるか',
     links:[
-      {type:'prefPortal'},
-      {type:'yahooEvac'},
+      {type:'cityOfficial'},
       {type:'prefOfficial'}
     ],
-    notices:[{type:'info', text:'給水所や物資の配布場所は、市区町村が発表します。上のページから、お住まいの市・町・村のお知らせをご覧ください。'}]
+    notices:[{type:'info', text:'給水所の場所と時間、物資の配布は、お住まいの市・町・村が発表します。時間帯が決まっていることが多いので、向かう前に必ず最新のお知らせをご確認ください。'}]
   },
   {
     id:'support', icon:'support', title:'支援の状況・国の対応',
@@ -592,10 +592,21 @@ function buildLink(link){
   if (link.type === 'power'){
     var comp = pref ? POWER[pref[2]] : null;
     if (!comp) return null;
-    a.href = comp.url;
-    t.textContent = comp.name + 'の停電情報';
-    s.textContent = (state.pref || '') + 'の停電状況を地図で確認できます';
+    // 東京電力は都道府県ごとの固定URLがあるので、選択中の県のページを直接開く
+    a.href = (pref[2] === 'tepco')
+      ? 'https://teideninfo.tepco.co.jp/flash/' + pref[3] + '000000000.html'
+      : comp.url;
+    t.textContent = (pref[2] === 'tepco' ? (state.pref + 'の停電情報') : (comp.name + 'の停電情報'));
+    s.textContent = '停電中の地域と復旧の見込み（' + comp.name + '）';
     a.replaceChild(iconBox('power'), a.firstChild);
+
+  } else if (link.type === 'cityOfficial'){
+    // 給水所・物資配布・避難所の実務情報は市区町村が出す。ここが本命の遷移先
+    if (!state.city || !state.city[3]) return null;
+    a.href = state.city[3];
+    t.textContent = state.city[1] + 'の公式サイト';
+    s.textContent = '給水所・物資の配布・避難所のお知らせはここに出ます';
+    a.replaceChild(iconBox('water'), a.firstChild);
 
   } else if (link.type === 'yahooEvac'){
     if (!pref) return null;
@@ -622,8 +633,8 @@ function buildLink(link){
     a.href = hasPortal ? pref[5] : pref[4];
     t.textContent = hasPortal ? (state.pref + 'の防災ポータル') : (state.pref + 'の公式サイト');
     s.textContent = hasPortal
-      ? '県が出す災害情報のまとめ。給水・物資のお知らせもここに出ます'
-      : '県の公式サイト。災害時は給水・物資のお知らせがここに出ます';
+      ? '県内の避難情報・気象・道路の通行規制のまとめ'
+      : '県が出す災害情報のまとめ';
     a.replaceChild(iconBox('support'), a.firstChild);
 
   } else if (link.type === 'prefOfficial'){
@@ -664,6 +675,27 @@ function renderDetail(){
 
   var box = $('detailLinks');
   box.textContent = '';
+
+  // 市区町村を選んでいないと、市区町村の公式サイト（給水所などの本命）が出せない。
+  // 黙って項目が減ると理由が分からないので、選びに行く導線を出す。
+  var needsCity = cat.links.some(function(l){ return l.type === 'cityOfficial'; });
+  if (needsCity && !state.city){
+    var call = el('button', 'footbtn');
+    call.type = 'button';
+    call.style.marginTop = '0';
+    call.appendChild(svgIcon('search'));
+    call.appendChild(document.createTextNode('市区町村を選ぶ'));
+    call.addEventListener('click', function(){ go('region'); });
+    var lead = el('div', 'notice');
+    var b = document.createElement('b');
+    b.textContent = 'お住まいの市区町村を選んでください';
+    lead.appendChild(b);
+    lead.appendChild(document.createTextNode(
+      '給水所の場所や物資の配布は市区町村が発表します。市区町村まで選ぶと、そのお知らせのページを直接開けます。'));
+    lead.appendChild(call);
+    box.appendChild(lead);
+  }
+
   cat.links.forEach(function(link){
     var node = buildLink(link);
     if (node) box.appendChild(node);
