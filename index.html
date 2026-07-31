@@ -369,8 +369,15 @@ var CATEGORIES = [
       {type:'url', title:'特務機関NERV防災', sub:'地震・津波・気象の速報が最も速い', url:'https://nerv.app/'},
       {type:'url', title:'Yahoo!防災速報', sub:'地域を登録すると通知が届く', url:'https://emg.yahoo.co.jp/'},
       {type:'url', title:'NHK ニュース・防災', sub:'テレビと同じ最新ニュースを見る', url:'https://www3.nhk.or.jp/news/'},
-      {type:'url', title:'気象庁 防災情報', sub:'地震・大雨・警報の公式な地図', url:'https://www.jma.go.jp/bosai/map.html'}
-    ]
+      {type:'url', title:'気象庁 防災情報', sub:'地震・大雨・警報の公式な地図', url:'https://www.jma.go.jp/bosai/map.html'},
+      /* チャンネルの /live は「その時点で配信中の動画」に転送されるため恒久リンクになる。
+         動画1本のURL（youtu.be/<動画ID>）は配信が切り替わると死ぬので使わない。 */
+      {type:'url', title:'地震ライブ（緊急地震速報）',
+       sub:'テレビのように流しっぱなしで見られます（民間の配信）',
+       url:'https://www.youtube.com/@teefive/live'}
+    ],
+    notices:[{type:'notice', title:'地震ライブを見るときの注意',
+      text:'動画は通信量と電池を多く使います。災害のときは回線が混み合い、充電もできないことがあります。電池と通信に余裕があるときにご利用ください。'}]
   },
   {
     id:'shelter', icon:'shelter', title:'避難所・避難情報',
