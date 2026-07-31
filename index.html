@@ -174,7 +174,9 @@ body{
 .footbtn:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
 .footbtn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 .primarybtn{
-  position:sticky;bottom:0;
+  /* 一覧が長いので、スクロール中も常に押せるよう下部に固定する。
+     画面の端に密着すると一覧の行を隠して見づらいため、少し浮かせる */
+  position:sticky;bottom:calc(env(safe-area-inset-bottom) + 14px);
   width:100%;min-height:64px;margin-top:20px;
   background:var(--accent);border:none;border-radius:14px;
   color:#fff;font-size:20px;font-weight:800;font-family:inherit;cursor:pointer;
