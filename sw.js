@@ -10,10 +10,11 @@
  *   - 外部サイトへのリクエストは一切キャッシュしない（自オリジンのGETのみ扱う）
  */
 
-var CACHE = 'bousai-hub-v1';
+var CACHE = 'bousai-hub-v2';
 var SHELL = [
   './',
   './index.html',
+  './cities.js',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',

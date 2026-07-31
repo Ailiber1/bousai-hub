@@ -160,6 +160,11 @@ body{
 }
 .prefbtn:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
 .prefbtn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.rowtext{display:block;min-width:0}
+.rowmain{display:block}
+.rownote{display:block;font-size:14px;font-weight:600;color:var(--sub);margin-top:1px}
+.prefbtn[aria-pressed="true"] .rownote{color:#F6D5D5}
+.hint{font-size:14.5px;color:var(--sub);margin-top:10px;line-height:1.5}
 .prefbtn .ck{width:24px;height:24px;fill:none;stroke:#fff;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;visibility:hidden}
 .prefbtn[aria-pressed="true"] .ck{visibility:visible}
 .empty{padding:24px 4px;color:var(--sub);font-size:16px}
@@ -234,13 +239,16 @@ body{
   <main class="wrap" id="scrRegion" hidden>
     <p class="lead" id="regionLead">お住まいの都道府県を選んでください</p>
     <label class="sr-only" for="prefSearch" hidden>都道府県をさがす</label>
-    <input class="searchbox" id="prefSearch" type="search" inputmode="text" placeholder="県名でさがす（例：くまもと）" autocomplete="off">
+    <input class="searchbox" id="prefSearch" type="search" inputmode="text" placeholder="市町村名でもさがせます（例：うと）" autocomplete="off">
+    <p class="hint" id="prefHint">市区町村まで選ぶと、その地域の避難所や給水のページが直接開きます。</p>
     <div class="preflist" id="prefList"></div>
     <p class="empty" id="prefEmpty" hidden>見つかりませんでした。ひらがな・漢字のどちらでもさがせます。</p>
     <button class="primarybtn" id="prefDecide" type="button" disabled>決定</button>
   </main>
 </div>
 
+<!-- 全国1,918市区町村のデータ（総務省「全国地方公共団体コード」より生成） -->
+<script src="./cities.js"></script>
 <script>
 'use strict';
 
@@ -263,25 +271,65 @@ var ICONS = {
 };
 
 /* =========================================================
-   都道府県データ（よみ付き。ひらがな入力でも検索できるようにする）
+   都道府県データ
+   [0] 名称 / [1] よみ（ひらがな入力でも検索できるように）/ [2] 電力会社キー
+   [3] JIS都道府県コード（Yahoo!天気・災害の都道府県別URLに使う）
+   [4] 県の公式サイト / [5] 県の防災ポータル（無い県は空文字 → [4] を使う）
+
+   ★ [4][5] はすべて 2026-07-31 に実際にアクセスして200を確認した実測値。
+     民間ドメイン（<県名>-bousai.jp 等）は第三者が取得している例が確認されたため
+     （沖縄県名の bousai.okinawa.jp は詐欺関連サイトだった）、
+     **官公庁ドメイン（*.pref.*.jp / *.lg.jp / *.metro.tokyo.lg.jp）のみ**を採用している。
+     リンクを追加・変更するときも、必ずこの制約を守ること。
    ========================================================= */
 var PREFS = [
-  ['北海道','ほっかいどう','hokkaido'],['青森県','あおもり','tohoku'],['岩手県','いわて','tohoku'],
-  ['宮城県','みやぎ','tohoku'],['秋田県','あきた','tohoku'],['山形県','やまがた','tohoku'],
-  ['福島県','ふくしま','tohoku'],['茨城県','いばらき','tepco'],['栃木県','とちぎ','tepco'],
-  ['群馬県','ぐんま','tepco'],['埼玉県','さいたま','tepco'],['千葉県','ちば','tepco'],
-  ['東京都','とうきょう','tepco'],['神奈川県','かながわ','tepco'],['新潟県','にいがた','tohoku'],
-  ['富山県','とやま','rikuden'],['石川県','いしかわ','rikuden'],['福井県','ふくい','rikuden'],
-  ['山梨県','やまなし','tepco'],['長野県','ながの','chuden'],['岐阜県','ぎふ','chuden'],
-  ['静岡県','しずおか','chuden'],['愛知県','あいち','chuden'],['三重県','みえ','chuden'],
-  ['滋賀県','しが','kepco'],['京都府','きょうと','kepco'],['大阪府','おおさか','kepco'],
-  ['兵庫県','ひょうご','kepco'],['奈良県','なら','kepco'],['和歌山県','わかやま','kepco'],
-  ['鳥取県','とっとり','energia'],['島根県','しまね','energia'],['岡山県','おかやま','energia'],
-  ['広島県','ひろしま','energia'],['山口県','やまぐち','energia'],['徳島県','とくしま','yonden'],
-  ['香川県','かがわ','yonden'],['愛媛県','えひめ','yonden'],['高知県','こうち','yonden'],
-  ['福岡県','ふくおか','kyuden'],['佐賀県','さが','kyuden'],['長崎県','ながさき','kyuden'],
-  ['熊本県','くまもと','kyuden'],['大分県','おおいた','kyuden'],['宮崎県','みやざき','kyuden'],
-  ['鹿児島県','かごしま','kyuden'],['沖縄県','おきなわ','okiden']
+  ['北海道','ほっかいどう','hokkaido','01','https://www.pref.hokkaido.lg.jp/',''],
+  ['青森県','あおもり','tohoku','02','https://www.pref.aomori.lg.jp/','https://bousai.pref.aomori.lg.jp/'],
+  ['岩手県','いわて','tohoku','03','https://www.pref.iwate.jp/',''],
+  ['宮城県','みやぎ','tohoku','04','https://www.pref.miyagi.jp/',''],
+  ['秋田県','あきた','tohoku','05','https://www.pref.akita.lg.jp/',''],
+  ['山形県','やまがた','tohoku','06','https://www.pref.yamagata.jp/',''],
+  ['福島県','ふくしま','tohoku','07','https://www.pref.fukushima.lg.jp/','https://www.bousai.pref.fukushima.lg.jp/'],
+  ['茨城県','いばらき','tepco','08','https://www.pref.ibaraki.jp/',''],
+  ['栃木県','とちぎ','tepco','09','https://www.pref.tochigi.lg.jp/',''],
+  ['群馬県','ぐんま','tepco','10','https://www.pref.gunma.jp/',''],
+  ['埼玉県','さいたま','tepco','11','https://www.pref.saitama.lg.jp/',''],
+  ['千葉県','ちば','tepco','12','https://www.pref.chiba.lg.jp/','https://www.bousai.pref.chiba.lg.jp/'],
+  ['東京都','とうきょう','tepco','13','https://www.metro.tokyo.lg.jp/','https://www.bousai.metro.tokyo.lg.jp/'],
+  ['神奈川県','かながわ','tepco','14','https://www.pref.kanagawa.lg.jp/','https://www.bousai.pref.kanagawa.jp/'],
+  ['新潟県','にいがた','tohoku','15','https://www.pref.niigata.lg.jp/','https://www.bousai.pref.niigata.jp/'],
+  ['富山県','とやま','rikuden','16','https://www.pref.toyama.jp/','https://www.bousai.pref.toyama.jp/'],
+  ['石川県','いしかわ','rikuden','17','https://www.pref.ishikawa.lg.jp/','https://www.pref.ishikawa.lg.jp/bousai/'],
+  ['福井県','ふくい','rikuden','18','https://www.pref.fukui.lg.jp/','https://www.bousai.pref.fukui.lg.jp/'],
+  ['山梨県','やまなし','tepco','19','https://www.pref.yamanashi.jp/',''],
+  ['長野県','ながの','chuden','20','https://www.pref.nagano.lg.jp/',''],
+  ['岐阜県','ぎふ','chuden','21','https://www.pref.gifu.lg.jp/',''],
+  ['静岡県','しずおか','chuden','22','https://www.pref.shizuoka.jp/',''],
+  ['愛知県','あいち','chuden','23','https://www.pref.aichi.jp/',''],
+  ['三重県','みえ','chuden','24','https://www.pref.mie.lg.jp/',''],
+  ['滋賀県','しが','kepco','25','https://www.pref.shiga.lg.jp/','https://www.pref.shiga.lg.jp/bousai/'],
+  ['京都府','きょうと','kepco','26','https://www.pref.kyoto.jp/','https://www.bousai.pref.kyoto.lg.jp/'],
+  ['大阪府','おおさか','kepco','27','https://www.pref.osaka.lg.jp/',''],
+  ['兵庫県','ひょうご','kepco','28','https://web.pref.hyogo.lg.jp/','https://www.bousai.pref.hyogo.lg.jp/'],
+  ['奈良県','なら','kepco','29','https://www.pref.nara.lg.jp/','https://www.pref.nara.lg.jp/bousai/'],
+  ['和歌山県','わかやま','kepco','30','https://www.pref.wakayama.lg.jp/','https://www.pref.wakayama.lg.jp/bousai/'],
+  ['鳥取県','とっとり','energia','31','https://www.pref.tottori.lg.jp/','https://www.bousai.pref.tottori.lg.jp/'],
+  ['島根県','しまね','energia','32','https://www.pref.shimane.lg.jp/',''],
+  ['岡山県','おかやま','energia','33','https://www.pref.okayama.jp/','https://www.bousai.pref.okayama.jp/'],
+  ['広島県','ひろしま','energia','34','https://www.pref.hiroshima.lg.jp/','https://www.bousai.pref.hiroshima.lg.jp/'],
+  ['山口県','やまぐち','energia','35','https://www.pref.yamaguchi.lg.jp/','https://www.bousai.pref.yamaguchi.lg.jp/'],
+  ['徳島県','とくしま','yonden','36','https://www.pref.tokushima.lg.jp/','https://bousai.pref.tokushima.lg.jp/'],
+  ['香川県','かがわ','yonden','37','https://www.pref.kagawa.lg.jp/',''],
+  ['愛媛県','えひめ','yonden','38','https://www.pref.ehime.jp/',''],
+  ['高知県','こうち','yonden','39','https://www.pref.kochi.lg.jp/',''],
+  ['福岡県','ふくおか','kyuden','40','https://www.pref.fukuoka.lg.jp/','https://www.bousai.pref.fukuoka.jp/'],
+  ['佐賀県','さが','kyuden','41','https://www.pref.saga.lg.jp/','https://www.pref.saga.lg.jp/bousai/'],
+  ['長崎県','ながさき','kyuden','42','https://www.pref.nagasaki.lg.jp/','https://www.bousai.pref.nagasaki.lg.jp/'],
+  ['熊本県','くまもと','kyuden','43','https://www.pref.kumamoto.jp/','https://portal.bousai.pref.kumamoto.jp/'],
+  ['大分県','おおいた','kyuden','44','https://www.pref.oita.jp/',''],
+  ['宮崎県','みやざき','kyuden','45','https://www.pref.miyazaki.lg.jp/',''],
+  ['鹿児島県','かごしま','kyuden','46','https://www.pref.kagoshima.jp/',''],
+  ['沖縄県','おきなわ','okiden','47','https://www.pref.okinawa.lg.jp/','']
 ];
 
 /* 電力会社の停電情報ページ（2026-07-31 に全社 HTTP 200 を実機確認済み） */
@@ -301,10 +349,17 @@ var POWER = {
 /* =========================================================
    カテゴリ定義
    link の種類:
-     url    … 固定の恒久リンク
-     search … 選択中の都道府県名を使った検索リンク（市区町村ごとの情報用）
-     power  … 選択中の都道府県に対応する電力会社の停電情報ページ
-     tel    … 電話発信
+     url          … 固定の恒久リンク
+     power        … 選択地域に対応する電力会社の停電情報ページ
+     yahooEvac    … Yahoo!天気・災害の避難情報ページ（市区町村を選んでいれば市区町村単位）
+     yahooMap     … Yahoo!天気・災害の避難場所マップ（都道府県単位）
+     prefPortal   … 選択都道府県の防災ポータル（無い県は公式サイト）
+     prefOfficial … 選択都道府県の公式サイト
+     tel          … 電話発信
+
+   ★ 検索エンジンへ飛ばすリンクは置かない。
+     「Google検索の結果ページ」を挟むと、利用者が自分で探すことになり
+     このアプリを開く意味が無くなるため（2026-07-31 利用者指摘により全廃）。
    ========================================================= */
 var CATEGORIES = [
   {
@@ -321,28 +376,29 @@ var CATEGORIES = [
     id:'shelter', icon:'shelter', title:'避難所・避難情報',
     sub:'どこへ逃げればよいかを調べる',
     links:[
-      {type:'search', title:'{PREF}の避難所を調べる', sub:'いま開いている避難所を検索します', q:'{PREF} 避難所 開設状況'},
+      {type:'yahooEvac'},
+      {type:'yahooMap'},
+      {type:'prefPortal'},
       {type:'url', title:'ハザードマップポータル', sub:'近くの避難場所と危険な場所を地図で確認（国土地理院）', url:'https://disaportal.gsi.go.jp/'}
-    ],
-    notices:[{type:'info', text:'避難所が開いているかどうかは市区町村が発表します。検索結果から、お住まいの市・町・村のページを開いてください。'}]
+    ]
   },
   {
     id:'power', icon:'power', title:'停電情報',
     sub:'どの地域で電気が止まっているか',
     links:[
-      {type:'power'},
-      {type:'search', title:'{PREF}の停電情報を調べる', sub:'上のページが開かないときはこちら', q:'{PREF} 停電情報'}
+      {type:'power'}
     ],
-    notices:[{type:'info', text:'県境の一部の地域は、となりの電力会社の管内になっていることがあります。見つからないときは下の検索もお試しください。'}]
+    notices:[{type:'info', text:'県境の一部の地域（静岡県の東部、福井県の南部など）は、となりの電力会社の管内になっていることがあります。'}]
   },
   {
     id:'water', icon:'water', title:'給水・食料の配布',
     sub:'水や食べ物をどこでもらえるか',
     links:[
-      {type:'search', title:'{PREF}の給水所を調べる', sub:'水がもらえる場所を検索します', q:'{PREF} 給水所 給水車'},
-      {type:'search', title:'{PREF}の物資配布を調べる', sub:'食料・生活用品の配布場所を検索します', q:'{PREF} 支援物資 配布'}
+      {type:'prefPortal'},
+      {type:'yahooEvac'},
+      {type:'prefOfficial'}
     ],
-    notices:[{type:'info', text:'給水や配布の場所は市区町村が発表します。検索結果から、お住まいの市・町・村のページを開いてください。'}]
+    notices:[{type:'info', text:'給水所や物資の配布場所は、市区町村が発表します。上のページから、お住まいの市・町・村のお知らせをご覧ください。'}]
   },
   {
     id:'support', icon:'support', title:'支援の状況・国の対応',
@@ -390,20 +446,29 @@ var DISASTERS = [
    状態管理（保存先はブラウザの localStorage のみ。外部送信なし）
    ========================================================= */
 var KEY_PREF = 'bousai-hub.pref';
+var KEY_CITY = 'bousai-hub.city';   // 市区町村のJISコード5桁
 var KEY_DIS  = 'bousai-hub.disaster';
 
 var state = {
   pref: null,      // 例: '熊本県'
+  city: null,      // 例: ['43211','宇土市','うとし']（都道府県だけ選んだ場合は null）
   disaster: null,  // 例: 'quake'
   screen: 'top',
   categoryId: null,
-  pendingPref: null
+  pendingPref: null,
+  pendingCity: null
 };
 
 function loadState(){
   try {
     var p = localStorage.getItem(KEY_PREF);
     if (p && findPref(p)) state.pref = p;
+    var c = localStorage.getItem(KEY_CITY);
+    if (c) {
+      var city = findCity(c);
+      // 保存された市区町村が、保存された都道府県と食い違う場合は市区町村を捨てる
+      if (city && state.pref && c.slice(0, 2) === findPref(state.pref)[3]) state.city = city;
+    }
     var d = localStorage.getItem(KEY_DIS);
     if (d && DISASTERS.some(function(x){ return x.id === d; })) state.disaster = d;
   } catch (e) { /* プライベートモード等で使えない場合は未設定のまま動かす */ }
@@ -415,6 +480,23 @@ function findPref(name){
   for (var i = 0; i < PREFS.length; i++) if (PREFS[i][0] === name) return PREFS[i];
   return null;
 }
+function findPrefByCode(code2){
+  for (var i = 0; i < PREFS.length; i++) if (PREFS[i][3] === code2) return PREFS[i];
+  return null;
+}
+function findCity(jis5){
+  var list = (typeof CITIES !== 'undefined') && CITIES[jis5.slice(0, 2)];
+  if (!list) return null;
+  for (var i = 0; i < list.length; i++) if (list[i][0] === jis5) return list[i];
+  return null;
+}
+/* 「熊本県 宇土市」のような表示名。市区町村未選択なら都道府県名だけ */
+function areaLabel(){
+  if (!state.pref) return '';
+  return state.city ? (state.pref + ' ' + state.city[1]) : state.pref;
+}
+/* リンク先を決めるための、選択中の都道府県レコード */
+function curPref(){ return state.pref ? findPref(state.pref) : null; }
 
 /* =========================================================
    DOM 生成ヘルパー
@@ -430,7 +512,6 @@ function svgIcon(key, cls){
   return s;
 }
 function iconBox(key){ var b = el('span', 'icon'); b.appendChild(svgIcon(key)); return b; }
-function fillPref(text){ return text.replace(/\{PREF\}/g, state.pref || 'お住まいの地域'); }
 
 var $ = function(id){ return document.getElementById(id); };
 
@@ -506,21 +587,52 @@ function buildLink(link){
   var body = el('span', 'body');
   var t = el('span', 'ttl');
   var s = el('span', 'sub');
+  var pref = curPref();
 
   if (link.type === 'power'){
-    var pref = findPref(state.pref);
     var comp = pref ? POWER[pref[2]] : null;
     if (!comp) return null;
     a.href = comp.url;
     t.textContent = comp.name + 'の停電情報';
     s.textContent = (state.pref || '') + 'の停電状況を地図で確認できます';
     a.replaceChild(iconBox('power'), a.firstChild);
-  } else if (link.type === 'search'){
-    a.className += ' is-search';
-    a.href = 'https://www.google.com/search?q=' + encodeURIComponent(fillPref(link.q));
-    t.textContent = fillPref(link.title);
-    s.textContent = link.sub;
-    a.replaceChild(iconBox('search'), a.firstChild);
+
+  } else if (link.type === 'yahooEvac'){
+    if (!pref) return null;
+    // 市区町村を選んでいれば、その市区町村のページを直接開く
+    a.href = state.city
+      ? 'https://crisis.yahoo.co.jp/evacuation/' + pref[3] + '/' + state.city[0] + '/'
+      : 'https://crisis.yahoo.co.jp/evacuation/' + pref[3] + '/';
+    t.textContent = areaLabel() + 'の避難情報';
+    s.textContent = state.city
+      ? 'いま出ている避難指示と、開設中の避難所の一覧（Yahoo!天気・災害）'
+      : '市区町村ごとの避難指示と、開設中の避難所（Yahoo!天気・災害）';
+    a.replaceChild(iconBox('shelter'), a.firstChild);
+
+  } else if (link.type === 'yahooMap'){
+    if (!pref) return null;
+    a.href = 'https://crisis.yahoo.co.jp/map/?pref=' + pref[3];
+    t.textContent = state.pref + 'の避難場所マップ';
+    s.textContent = '近くの避難場所を地図で探す（Yahoo!天気・災害）';
+    a.replaceChild(iconBox('shelter'), a.firstChild);
+
+  } else if (link.type === 'prefPortal'){
+    if (!pref) return null;
+    var hasPortal = !!pref[5];
+    a.href = hasPortal ? pref[5] : pref[4];
+    t.textContent = hasPortal ? (state.pref + 'の防災ポータル') : (state.pref + 'の公式サイト');
+    s.textContent = hasPortal
+      ? '県が出す災害情報のまとめ。給水・物資のお知らせもここに出ます'
+      : '県の公式サイト。災害時は給水・物資のお知らせがここに出ます';
+    a.replaceChild(iconBox('support'), a.firstChild);
+
+  } else if (link.type === 'prefOfficial'){
+    if (!pref) return null;
+    a.href = pref[4];
+    t.textContent = state.pref + 'の公式サイト';
+    s.textContent = '被災者向けの支援や相談窓口のお知らせ';
+    a.replaceChild(iconBox('support'), a.firstChild);
+
   } else if (link.type === 'tel'){
     a.className += ' is-tel';
     a.href = 'tel:' + link.tel;
@@ -570,30 +682,78 @@ function renderDetail(){
 /* =========================================================
    地域変更画面
    ========================================================= */
+/* 都道府県と市区町村をまとめて検索する。
+   「宇土市」「うと」のどちらでも見つかるようにする。 */
 function renderPrefList(){
   var kw = ($('prefSearch').value || '').trim().toLowerCase();
   var box = $('prefList');
   box.textContent = '';
   var hit = 0;
+  var LIMIT = 60;   // 一度に出しすぎると探しにくいので上限を設ける
 
-  PREFS.forEach(function(p){
-    if (kw && p[0].toLowerCase().indexOf(kw) < 0 && p[1].indexOf(kw) < 0) return;
-    hit++;
+  function addRow(label, note, prefName, city){
+    var selected = (state.pendingPref === prefName) &&
+                   ((!city && !state.pendingCity) || (city && state.pendingCity && state.pendingCity[0] === city[0]));
     var b = el('button', 'prefbtn');
     b.type = 'button';
-    b.setAttribute('aria-pressed', state.pendingPref === p[0] ? 'true' : 'false');
-    var t = document.createElement('span'); t.textContent = p[0];
-    b.appendChild(t);
+    b.setAttribute('aria-pressed', selected ? 'true' : 'false');
+    var wrap = el('span', 'rowtext');
+    var t = el('span', 'rowmain'); t.textContent = label;
+    wrap.appendChild(t);
+    if (note){ var n = el('span', 'rownote'); n.textContent = note; wrap.appendChild(n); }
+    b.appendChild(wrap);
     b.appendChild(svgIcon('check', 'ck'));
     b.addEventListener('click', function(){
-      state.pendingPref = p[0];
+      state.pendingPref = prefName;
+      state.pendingCity = city || null;
       renderPrefList();
       $('prefDecide').disabled = false;
     });
     box.appendChild(b);
+    hit++;
+  }
+
+  // キーワードが無いときは都道府県の一覧をそのまま出す
+  if (!kw){
+    PREFS.forEach(function(p){ addRow(p[0], null, p[0], null); });
+    $('prefEmpty').hidden = hit > 0;
+    $('prefHint').hidden = false;
+    return;
+  }
+
+  /* 候補を集めてから並べ替える。
+     「うと」で検索したとき、部分一致だけだと「京都府」「江東区」が先に出て
+     肝心の「宇土市」が埋もれてしまうため、前方一致を必ず上に持ってくる。 */
+  var rows = [];
+  function score(name, yomi){
+    if (name.indexOf(kw) === 0 || yomi.indexOf(kw) === 0) return 0;   // 前方一致
+    if (name.indexOf(kw) >= 0 || yomi.indexOf(kw) >= 0) return 1;     // 部分一致
+    return -1;
+  }
+
+  PREFS.forEach(function(p){
+    var sc = score(p[0].toLowerCase(), p[1]);
+    if (sc >= 0) rows.push({ sc: sc, isPref: 1, label: p[0], note: null, pref: p[0], city: null });
+    var list = (typeof CITIES !== 'undefined') && CITIES[p[3]];
+    if (!list) return;
+    for (var i = 0; i < list.length; i++){
+      var c = list[i];
+      var s2 = score(c[1], c[2]);
+      if (s2 >= 0) rows.push({ sc: s2, isPref: 0, label: c[1], note: p[0], pref: p[0], city: c });
+    }
   });
 
+  // 前方一致 → 都道府県 → 名前の短い順（「宇土市」が「宇土市○○」より先に出る）
+  rows.sort(function(a, b){
+    return (a.sc - b.sc) || (b.isPref - a.isPref) || (a.label.length - b.label.length);
+  });
+
+  for (var i = 0; i < rows.length && hit < LIMIT; i++){
+    addRow(rows[i].label, rows[i].note, rows[i].pref, rows[i].city);
+  }
+
   $('prefEmpty').hidden = hit > 0;
+  $('prefHint').hidden = !!kw;
 }
 
 /* =========================================================
@@ -617,7 +777,7 @@ function render(){
 
   $('backBtn').hidden = isTop || (state.screen === 'region' && !state.pref);
   $('hdRegion').hidden = !(isTop && state.pref);
-  if (state.pref) $('hdRegion').textContent = state.pref;
+  if (state.pref) $('hdRegion').textContent = areaLabel();
 
   if (isTop){
     $('hdTitle').textContent = '防災ハブ';
@@ -631,9 +791,10 @@ function render(){
   } else {
     $('hdTitle').textContent = '地域を選ぶ';
     $('regionLead').textContent = state.pref
-      ? 'お住まいの都道府県を選んでください。停電・避難所・給水の情報がこの地域に切り替わります。'
-      : 'はじめに、お住まいの都道府県を選んでください。停電・避難所・給水の情報がこの地域のものになります。';
+      ? 'お住まいの地域を選んでください。避難所・給水・停電の情報がこの地域に切り替わります。'
+      : 'はじめに、お住まいの地域を選んでください。避難所・給水・停電の情報がこの地域のものになります。';
     state.pendingPref = state.pref;
+    state.pendingCity = state.city;
     $('prefDecide').disabled = !state.pendingPref;
     renderPrefList();
   }
@@ -653,7 +814,9 @@ function init(){
     if (!state.pendingPref) return;
     var first = !state.pref;
     state.pref = state.pendingPref;
+    state.city = state.pendingCity || null;
     save(KEY_PREF, state.pref);
+    save(KEY_CITY, state.city ? state.city[0] : null);
     first ? go('top', null, true) : history.back();
   });
 
