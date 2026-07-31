@@ -1,0 +1,68 @@
+name: リンク点検
+
+# このアプリの価値は「一次情報への最短距離」であることに尽きるため、
+# リンクが死ぬと価値がゼロになる。定期的に全リンクの生存を自動確認する。
+#
+# 実行タイミング
+#   ・3か月に1回（1月/4月/7月/10月の1日 深夜）
+#   ・必要なときは手動でも実行できる
+#
+# 費用
+#   Publicリポジトリの標準ランナーは無料。追加の契約は不要。
+
+on:
+  schedule:
+    # UTC 21:00 = 日本時間 翌6:00。1・4・7・10月の1日に実行
+    - cron: '0 21 1 1,4,7,10 *'
+  workflow_dispatch:        # 手動実行を許可
+
+# 権限は必要最小限にする。既定では広い権限が付くため明示的に絞る。
+# コードを書き換える権限は与えない（読み取りのみ）。
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      # 公式Actionのみを使い、タグではなくコミットハッシュで固定する。
+      # タグは後から別のコミットに付け替えられるため、ハッシュ指定の方が安全。
+      - name: リポジトリを取得
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      # 外部パッケージは一切インストールしない（標準ライブラリのみで動く）。
+      # pip install はサプライチェーン攻撃の入口になるため使わない。
+      - name: リンクを点検
+        id: check
+        run: |
+          set +e
+          python3 tools/check-links.py > report.md 2> progress.log
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+          cat progress.log
+          echo "---- レポート ----"
+          cat report.md
+
+      - name: 結果をサマリーに表示
+        if: always()
+        run: |
+          if [ -s report.md ]; then
+            cat report.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo '## 防災ハブ リンク点検の結果' >> "$GITHUB_STEP_SUMMARY"
+            echo '' >> "$GITHUB_STEP_SUMMARY"
+            echo '問題は見つかりませんでした。' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      # 要対応がある時だけIssueを作る。問題なければ何も通知しない。
+      - name: 問題があればIssueを作成
+        if: steps.check.outputs.exit_code != '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}   # GitHubが自動発行する一時トークン。自前のシークレットは不要
+        run: |
+          gh issue create \
+            --title "リンク点検で要対応が見つかりました（$(date +%Y-%m-%d)）" \
+            --body-file report.md \
+            --repo "$GITHUB_REPOSITORY"
