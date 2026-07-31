@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ja"><head><meta charset="UTF-8">
+<title>防災ハブ QRカード</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    width:1080px;height:1080px;
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic","Noto Sans JP",sans-serif;
+    background:#F1F4F8;display:flex;flex-direction:column;
+  }
+  .head{
+    background:linear-gradient(160deg,#D53434 0%,#C62828 55%,#A81F1F 100%);
+    color:#fff;padding:44px 56px 38px;
+  }
+  .head h1{font-size:64px;font-weight:900;letter-spacing:.04em;line-height:1.1}
+  .head p{font-size:29px;font-weight:700;margin-top:14px;opacity:.95;line-height:1.45}
+  .body{flex:1;display:flex;padding:40px 56px 0;gap:44px;align-items:flex-start}
+  .left{flex:1;min-width:0}
+  .lead{font-size:27px;line-height:1.75;color:#16202C;font-weight:600}
+  .lead .em{color:#C62828;font-weight:900}
+  ul{margin-top:26px;list-style:none}
+  li{
+    font-size:25px;line-height:1.5;color:#16202C;font-weight:700;
+    padding:13px 0 13px 44px;position:relative;
+  }
+  li::before{
+    content:"";position:absolute;left:6px;top:20px;
+    width:16px;height:16px;border-radius:50%;background:#C62828;
+  }
+  .qrbox{
+    background:#fff;border:5px solid #16202C;border-radius:22px;
+    padding:20px;flex-shrink:0;
+  }
+  .qrbox img{display:block;width:340px;height:340px}
+  .qrcap{
+    text-align:center;font-size:24px;font-weight:900;margin-top:14px;color:#16202C;
+  }
+  .foot{
+    margin:0 56px 44px;padding:26px 30px;background:#fff;
+    border:3px solid #D3DAE3;border-radius:18px;
+  }
+  .foot b{display:block;font-size:26px;color:#16202C;margin-bottom:10px}
+  .foot p{font-size:22px;line-height:1.6;color:#586572}
+  .url{
+    margin-top:14px;font-size:23px;font-weight:800;color:#0B4D8F;
+    word-break:break-all;
+  }
+  .free{
+    display:inline-block;background:#0B4D8F;color:#fff;
+    font-size:22px;font-weight:900;border-radius:999px;padding:7px 22px;margin-top:18px;
+  }
+</style></head>
+<body>
+  <div class="head">
+    <h1>防災ハブ</h1>
+    <p>災害のとき、必要な情報に すぐたどり着くためのアプリ</p>
+  </div>
+
+  <div class="body">
+    <div class="left">
+      <p class="lead">
+        地震・大雨のとき、<span class="em">自分の住んでいる市区町村</span>を選ぶだけで、
+        必要なページが直接開きます。
+      </p>
+      <ul>
+        <li>避難所が今どこに開いているか</li>
+        <li>給水所・食料や物資の配布</li>
+        <li>停電している地域と復旧の状況</li>
+        <li>電話やネットがつながらない時の連絡手段</li>
+      </ul>
+      <span class="free">ずっと無料 ／ 全国1,918市区町村に対応</span>
+    </div>
+
+    <div>
+      <div class="qrbox"><img src="./bousai-hub-qr.png" alt="防災ハブのQRコード"></div>
+      <div class="qrcap">カメラで読み取る</div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <b>災害が起きる前に、ホーム画面に入れておいてください</b>
+    <p>iPhoneは「共有」→「ホーム画面に追加」／ Androidは「⋮」→「アプリをインストール」<br>
+       アイコンが並ぶので、いざという時にすぐ開けます。</p>
+    <div class="url">https://ailiber1.github.io/bousai-hub/</div>
+  </div>
+</body></html>
