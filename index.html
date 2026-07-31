@@ -191,6 +191,22 @@ body{
 .primarybtn:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
 .foot-note{margin-top:22px;font-size:13.5px;color:var(--sub);line-height:1.6;text-align:center}
 
+/* ホーム画面への追加案内 */
+.install{
+  margin-top:24px;padding:16px;
+  background:#FFF8E1;border:2px solid #E9C46A;border-radius:14px;
+}
+.install b{display:block;font-size:17.5px;margin-bottom:6px}
+.install p{font-size:15.5px;line-height:1.6;color:#4A4034}
+.install-steps{margin:12px 0 0;padding-left:1.4em;font-size:15.5px;line-height:1.9}
+.install-steps li{margin-bottom:2px}
+.install-close{
+  margin-top:14px;width:100%;min-height:48px;
+  background:#fff;border:2px solid #C9AE6A;border-radius:12px;
+  font-size:16px;font-weight:700;font-family:inherit;color:#5B4B2A;cursor:pointer;
+}
+.install-close:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+
 [hidden]{display:none !important}
 @media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important}}
 @media (min-width:480px){
@@ -221,7 +237,16 @@ body{
     <h2 class="sect-title">調べたいことを選んでください</h2>
     <div class="cards" id="cards"></div>
 
-    <button class="footbtn" id="toRegion" type="button">
+      <!-- ホーム画面に追加していない人にだけ出す案内。
+         災害が起きてから探すのでは間に合わないため、平常時に入れてもらうことが要。 -->
+    <div class="install" id="installBox" hidden>
+      <b id="installTitle">ホーム画面に追加しておいてください</b>
+      <p id="installBody"></p>
+      <ol class="install-steps" id="installSteps"></ol>
+      <button class="install-close" id="installClose" type="button">閉じる</button>
+    </div>
+
+  <button class="footbtn" id="toRegion" type="button">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-5.4 7-11a7 7 0 1 0-14 0c0 5.6 7 11 7 11z"/><circle cx="12" cy="10" r="2.6"/></svg>
       地域を変更する
     </button>
@@ -842,6 +867,68 @@ function renderRegionScreen(){
 }
 
 /* =========================================================
+   ホーム画面への追加案内
+
+   このアプリは「災害が起きてから探す」のでは間に合わない。
+   平常時にホーム画面へ入れてもらうことが普及の要になるため、
+   まだ追加していない人にだけ手順を出す。
+   すでに追加済みの人（standalone表示）には出さない。
+   ========================================================= */
+var KEY_INSTALL_HIDDEN = 'bousai-hub.installHidden';
+
+function isInstalled(){
+  return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+         window.navigator.standalone === true;
+}
+
+function deviceKind(){
+  var ua = navigator.userAgent || '';
+  // iPadOSはUAがMacと同じになるため、タッチ可能なMacはiPadとみなす
+  var isIOS = /iPhone|iPod/.test(ua) ||
+              (/iPad/.test(ua)) ||
+              (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  if (isIOS) return 'ios';
+  if (/Android/.test(ua)) return 'android';
+  return 'pc';
+}
+
+function renderInstallGuide(){
+  var box = $('installBox');
+  var hidden = false;
+  try { hidden = localStorage.getItem(KEY_INSTALL_HIDDEN) === '1'; } catch (e) {}
+  if (isInstalled() || hidden){ box.hidden = true; return; }
+
+  var kind = deviceKind();
+  var body = $('installBody');
+  var steps = $('installSteps');
+  steps.textContent = '';
+
+  var texts;
+  if (kind === 'ios'){
+    body.textContent = '災害のときにすぐ開けるよう、ホーム画面にアイコンを置いておきましょう。Safariで開いている場合の手順です。';
+    texts = ['画面の下にある「共有」ボタン（四角に上向きの矢印）を押す',
+             'メニューを下にたどって「ホーム画面に追加」を押す',
+             '右上の「追加」を押す'];
+  } else if (kind === 'android'){
+    body.textContent = '災害のときにすぐ開けるよう、ホーム画面にアイコンを置いておきましょう。Chromeで開いている場合の手順です。';
+    texts = ['画面の右上にある「⋮」を押す',
+             '「アプリをインストール」または「ホーム画面に追加」を押す',
+             '確認の画面で「インストール」を押す'];
+  } else {
+    body.textContent = 'スマートフォンで開くと、ホーム画面にアイコンとして置いておけます。災害のときにすぐ開けるようにしておくことをおすすめします。';
+    texts = ['スマートフォンでこのページを開く',
+             'iPhoneは「共有」→「ホーム画面に追加」',
+             'Androidは「⋮」→「アプリをインストール」'];
+  }
+  texts.forEach(function(t){
+    var li = document.createElement('li');
+    li.textContent = t;
+    steps.appendChild(li);
+  });
+  box.hidden = false;
+}
+
+/* =========================================================
    画面遷移（端末の「戻る」操作にも対応させる）
    ========================================================= */
 function go(screen, categoryId, replace){
@@ -869,6 +956,7 @@ function render(){
     $('hdTitle').textContent = '防災ハブ';
     renderChips();
     renderCards();
+    renderInstallGuide();
   } else if (state.screen === 'detail'){
     var cat = null;
     for (var i = 0; i < CATEGORIES.length; i++) if (CATEGORIES[i].id === state.categoryId) cat = CATEGORIES[i];
@@ -902,6 +990,10 @@ function init(){
     history.back();
   });
   $('toRegion').addEventListener('click', function(){ go('region'); });
+  $('installClose').addEventListener('click', function(){
+    save(KEY_INSTALL_HIDDEN, '1');
+    $('installBox').hidden = true;
+  });
   $('prefSearch').addEventListener('input', renderPrefList);
   $('prefSearch').addEventListener('search', renderPrefList);
   $('prefDecide').addEventListener('click', function(){
