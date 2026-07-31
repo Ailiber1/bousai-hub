@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<title>防災ハブ</title>
+<meta name="description" content="災害のときに必要なアプリと公式情報の入口を、1つにまとめたリンク集です。">
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#C62828">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="防災ハブ">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<link rel="icon" href="./icons/icon-192.png">
+<style>
+:root{
+  --bg:#F1F4F8;
+  --card:#FFFFFF;
+  --text:#16202C;
+  --sub:#586572;
+  --accent:#C62828;
+  --accent-weak:#FDECEC;
+  --blue:#0B4D8F;
+  --line:#D3DAE3;
+  --radius:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP",Meiryo,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  font-size:17px;
+  line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+}
+.app{max-width:560px;margin:0 auto;min-height:100vh;background:var(--bg);padding-bottom:32px}
+
+/* ---------- ヘッダー ---------- */
+.hd{
+  position:sticky;top:0;z-index:10;
+  background:var(--accent);color:#fff;
+  padding:calc(env(safe-area-inset-top) + 12px) 0 12px;
+  box-shadow:0 2px 8px rgba(0,0,0,.16);
+}
+/* 赤帯は画面幅いっぱいに、中身は本文と同じ幅に揃える */
+.hd-in{max-width:560px;margin:0 auto;padding:0 16px;display:flex;align-items:center;gap:12px}
+.hd h1{font-size:21px;font-weight:800;letter-spacing:.04em;flex:1;min-width:0}
+.hd .region{
+  background:rgba(255,255,255,.18);border:1.5px solid rgba(255,255,255,.55);
+  border-radius:999px;padding:5px 14px;font-size:15px;font-weight:700;white-space:nowrap;
+}
+.backbtn{
+  background:rgba(255,255,255,.18);border:1.5px solid rgba(255,255,255,.55);
+  color:#fff;border-radius:12px;
+  min-width:52px;min-height:44px;
+  display:flex;align-items:center;justify-content:center;gap:4px;
+  font-size:16px;font-weight:700;cursor:pointer;flex-shrink:0;
+}
+.backbtn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+
+/* ---------- 共通 ---------- */
+.wrap{padding:18px 16px 0}
+.lead{font-size:16px;color:var(--sub);margin-bottom:14px}
+.sect-title{font-size:16px;font-weight:800;color:var(--sub);margin:26px 0 10px;letter-spacing:.02em}
+.sect-title:first-child{margin-top:0}
+
+/* ---------- 災害種別チップ ---------- */
+.chips{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.chip{
+  min-height:62px;border-radius:14px;border:2px solid var(--line);
+  background:var(--card);color:var(--text);
+  font-size:18px;font-weight:800;font-family:inherit;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  cursor:pointer;transition:background .12s,border-color .12s;
+}
+.chip .ico{font-size:22px;line-height:1}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.chip:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.chip-note{font-size:15px;color:var(--sub);margin-top:10px}
+
+/* ---------- カテゴリカード ---------- */
+.cards{display:flex;flex-direction:column;gap:12px}
+.card{
+  display:flex;align-items:center;gap:14px;
+  width:100%;min-height:88px;padding:16px 14px;
+  background:var(--card);border:2px solid var(--line);border-radius:var(--radius);
+  text-align:left;font-family:inherit;color:inherit;cursor:pointer;
+  text-decoration:none;
+}
+.card:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.card .icon{
+  width:56px;height:56px;flex-shrink:0;border-radius:14px;
+  background:#EDF2F9;display:flex;align-items:center;justify-content:center;
+}
+.card .icon svg{width:32px;height:32px;fill:none;stroke:var(--blue);stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.card .body{flex:1;min-width:0;display:block}
+.card .ttl{display:block;font-size:19px;font-weight:800;line-height:1.35}
+.card .sub{display:block;font-size:14.5px;color:var(--sub);margin-top:3px;line-height:1.45}
+.card .arw{width:22px;height:22px;flex-shrink:0;fill:none;stroke:#94A2B3;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.card.is-priority{border-color:var(--accent);background:var(--accent-weak)}
+.card.is-priority .icon{background:#F9D9D9}
+.card.is-priority .icon svg{stroke:var(--accent)}
+.badge{
+  display:inline-block;background:var(--accent);color:#fff;
+  font-size:12.5px;font-weight:800;border-radius:6px;padding:2px 8px;margin-bottom:4px;
+}
+
+/* ---------- 詳細画面のリンクカード ---------- */
+.linkcard{
+  display:flex;align-items:center;gap:14px;
+  padding:18px 14px;background:var(--card);
+  border:2px solid var(--line);border-radius:var(--radius);
+  text-decoration:none;color:inherit;min-height:92px;
+}
+.linkcard:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.linkcard .body{flex:1;min-width:0;display:block}
+.linkcard .ttl{display:block;font-size:19px;font-weight:800;line-height:1.35}
+.linkcard .sub{display:block;font-size:14.5px;color:var(--sub);margin-top:4px;line-height:1.5}
+.linkcard .ext{width:22px;height:22px;flex-shrink:0;fill:none;stroke:#94A2B3;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.linkcard.is-search .icon{background:#EAF3EA}
+.linkcard.is-search .icon svg{stroke:#1F7A3D}
+.linkcard.is-tel{background:#0B4D8F;border-color:#0B4D8F;color:#fff}
+.linkcard.is-tel .sub{color:#D5E4F5}
+.linkcard.is-tel .icon{background:rgba(255,255,255,.16)}
+.linkcard.is-tel .icon svg{stroke:#fff}
+.linkcard.is-tel .ext{stroke:#fff}
+.linkcard .icon{
+  width:56px;height:56px;flex-shrink:0;border-radius:14px;
+  background:#EDF2F9;display:flex;align-items:center;justify-content:center;
+}
+.linkcard .icon svg{width:32px;height:32px;fill:none;stroke:var(--blue);stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+
+/* ---------- 注意書き ---------- */
+.notice{
+  background:#FFF8E1;border:2px solid #E9C46A;border-radius:14px;
+  padding:14px;font-size:15.5px;line-height:1.6;margin-top:16px;
+}
+.notice b{display:block;font-size:16.5px;margin-bottom:4px}
+.info{
+  background:#EDF2F9;border:2px solid #C6D5E8;border-radius:14px;
+  padding:14px;font-size:15.5px;line-height:1.6;margin-top:16px;color:#1D3853;
+}
+
+/* ---------- 地域変更 ---------- */
+.searchbox{
+  width:100%;min-height:56px;font-size:18px;font-family:inherit;
+  padding:12px 16px;border:2px solid var(--line);border-radius:14px;background:#fff;color:var(--text);
+}
+.searchbox:focus{outline:3px solid var(--blue);outline-offset:1px;border-color:var(--blue)}
+.preflist{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+.prefbtn{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  width:100%;min-height:60px;padding:12px 16px;
+  background:var(--card);border:2px solid var(--line);border-radius:14px;
+  font-size:19px;font-weight:700;font-family:inherit;color:inherit;cursor:pointer;text-align:left;
+}
+.prefbtn:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.prefbtn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.prefbtn .ck{width:24px;height:24px;fill:none;stroke:#fff;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;visibility:hidden}
+.prefbtn[aria-pressed="true"] .ck{visibility:visible}
+.empty{padding:24px 4px;color:var(--sub);font-size:16px}
+
+/* ---------- フッター操作 ---------- */
+.footbtn{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  width:100%;min-height:60px;margin-top:26px;
+  background:#fff;border:2px solid var(--blue);border-radius:14px;
+  color:var(--blue);font-size:18px;font-weight:800;font-family:inherit;cursor:pointer;
+}
+.footbtn:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.footbtn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.primarybtn{
+  position:sticky;bottom:0;
+  width:100%;min-height:64px;margin-top:20px;
+  background:var(--accent);border:none;border-radius:14px;
+  color:#fff;font-size:20px;font-weight:800;font-family:inherit;cursor:pointer;
+  box-shadow:0 4px 14px rgba(198,40,40,.3);
+}
+.primarybtn:disabled{background:#B9C2CD;box-shadow:none;cursor:default}
+.primarybtn:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.foot-note{margin-top:22px;font-size:13.5px;color:var(--sub);line-height:1.6;text-align:center}
+
+[hidden]{display:none !important}
+@media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important}}
+@media (min-width:480px){
+  body{font-size:18px}
+  .chips{grid-template-columns:repeat(4,1fr)}
+  .chip{font-size:17px;flex-direction:column;gap:2px;min-height:76px}
+}
+</style>
+</head>
+<body>
+<header class="hd">
+  <div class="hd-in">
+    <button class="backbtn" id="backBtn" type="button" hidden aria-label="前の画面に戻る">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>戻る
+    </button>
+    <h1 id="hdTitle">防災ハブ</h1>
+    <span class="region" id="hdRegion" hidden></span>
+  </div>
+</header>
+<div class="app">
+
+  <!-- ========== トップ画面 ========== -->
+  <main class="wrap" id="scrTop">
+    <h2 class="sect-title">いま起きていることを選んでください</h2>
+    <div class="chips" id="chips"></div>
+    <p class="chip-note" id="chipNote">選ぶと、必要な情報が一番上に出てきます。</p>
+
+    <h2 class="sect-title">調べたいことを選んでください</h2>
+    <div class="cards" id="cards"></div>
+
+    <button class="footbtn" id="toRegion" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-5.4 7-11a7 7 0 1 0-14 0c0 5.6 7 11 7 11z"/><circle cx="12" cy="10" r="2.6"/></svg>
+      地域を変更する
+    </button>
+    <p class="foot-note">このアプリは情報をまとめて表示するものではなく、公式のアプリ・ページへの入口をまとめたものです。<br>通信ができないときは「連絡手段」をご覧ください。</p>
+  </main>
+
+  <!-- ========== カテゴリ詳細画面 ========== -->
+  <main class="wrap" id="scrDetail" hidden>
+    <p class="lead" id="detailLead">開くアプリを選んでください</p>
+    <div class="cards" id="detailLinks"></div>
+    <div id="detailNotices"></div>
+  </main>
+
+  <!-- ========== 地域変更画面 ========== -->
+  <main class="wrap" id="scrRegion" hidden>
+    <p class="lead" id="regionLead">お住まいの都道府県を選んでください</p>
+    <label class="sr-only" for="prefSearch" hidden>都道府県をさがす</label>
+    <input class="searchbox" id="prefSearch" type="search" inputmode="text" placeholder="県名でさがす（例：くまもと）" autocomplete="off">
+    <div class="preflist" id="prefList"></div>
+    <p class="empty" id="prefEmpty" hidden>見つかりませんでした。ひらがな・漢字のどちらでもさがせます。</p>
+    <button class="primarybtn" id="prefDecide" type="button" disabled>決定</button>
+  </main>
+</div>
+
+<script>
+'use strict';
+
+/* =========================================================
+   アイコン（すべてインラインSVG。外部リクエストを一切行わない）
+   ========================================================= */
+var ICONS = {
+  quake:   '<path d="M2 12h3l2.5-7 4 14 3-9 2 2h5.5"/>',
+  shelter: '<path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9.6V20h13V9.6"/><path d="M9.5 20v-5h5v5"/>',
+  power:   '<path d="M13 2 4.5 13.5H11L9.5 22 19 10h-6.5z"/>',
+  water:   '<path d="M12 2.7s6.2 6.4 6.2 11a6.2 6.2 0 0 1-12.4 0c0-4.6 6.2-11 6.2-11z"/>',
+  support: '<path d="M3 9.5 12 4l9 5.5"/><path d="M5.5 10.5V18M10 10.5V18M14 10.5V18M18.5 10.5V18"/><path d="M3.2 20.5h17.6"/>',
+  comm:    '<path d="M2.5 8.8a15 15 0 0 1 19 0"/><path d="M5.8 12.6a10 10 0 0 1 12.4 0"/><path d="M9.2 16.4a5 5 0 0 1 5.6 0"/><circle cx="12" cy="20" r="1.2" fill="currentColor" stroke="none"/>',
+  prepare: '<path d="M4 8h16v12H4z"/><path d="M9 8V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V8"/><path d="M4 13h16"/>',
+  search:  '<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/>',
+  phone:   '<path d="M6.2 3.5h3.1l1.6 4-2 1.4a12.5 12.5 0 0 0 6.2 6.2l1.4-2 4 1.6v3.1a1.9 1.9 0 0 1-2.1 1.9C10.9 19.9 4.1 13.1 3.3 5.6A1.9 1.9 0 0 1 5.2 3.5z"/>',
+  arrow:   '<path d="M9 5l7 7-7 7"/>',
+  check:   '<path d="M4 12.5l5 5 11-11"/>',
+  ext:     '<path d="M14 4h6v6"/><path d="M20 4l-8.5 8.5"/><path d="M18.5 14v4.5a1.5 1.5 0 0 1-1.5 1.5H5.5A1.5 1.5 0 0 1 4 18.5V7a1.5 1.5 0 0 1 1.5-1.5H10"/>'
+};
+
+/* =========================================================
+   都道府県データ（よみ付き。ひらがな入力でも検索できるようにする）
+   ========================================================= */
+var PREFS = [
+  ['北海道','ほっかいどう','hokkaido'],['青森県','あおもり','tohoku'],['岩手県','いわて','tohoku'],
+  ['宮城県','みやぎ','tohoku'],['秋田県','あきた','tohoku'],['山形県','やまがた','tohoku'],
+  ['福島県','ふくしま','tohoku'],['茨城県','いばらき','tepco'],['栃木県','とちぎ','tepco'],
+  ['群馬県','ぐんま','tepco'],['埼玉県','さいたま','tepco'],['千葉県','ちば','tepco'],
+  ['東京都','とうきょう','tepco'],['神奈川県','かながわ','tepco'],['新潟県','にいがた','tohoku'],
+  ['富山県','とやま','rikuden'],['石川県','いしかわ','rikuden'],['福井県','ふくい','rikuden'],
+  ['山梨県','やまなし','tepco'],['長野県','ながの','chuden'],['岐阜県','ぎふ','chuden'],
+  ['静岡県','しずおか','chuden'],['愛知県','あいち','chuden'],['三重県','みえ','chuden'],
+  ['滋賀県','しが','kepco'],['京都府','きょうと','kepco'],['大阪府','おおさか','kepco'],
+  ['兵庫県','ひょうご','kepco'],['奈良県','なら','kepco'],['和歌山県','わかやま','kepco'],
+  ['鳥取県','とっとり','energia'],['島根県','しまね','energia'],['岡山県','おかやま','energia'],
+  ['広島県','ひろしま','energia'],['山口県','やまぐち','energia'],['徳島県','とくしま','yonden'],
+  ['香川県','かがわ','yonden'],['愛媛県','えひめ','yonden'],['高知県','こうち','yonden'],
+  ['福岡県','ふくおか','kyuden'],['佐賀県','さが','kyuden'],['長崎県','ながさき','kyuden'],
+  ['熊本県','くまもと','kyuden'],['大分県','おおいた','kyuden'],['宮崎県','みやざき','kyuden'],
+  ['鹿児島県','かごしま','kyuden'],['沖縄県','おきなわ','okiden']
+];
+
+/* 電力会社の停電情報ページ（2026-07-31 に全社 HTTP 200 を実機確認済み） */
+var POWER = {
+  hokkaido:{name:'北海道電力ネットワーク', url:'https://teiden-info.hepco.co.jp/'},
+  tohoku:  {name:'東北電力ネットワーク',   url:'https://nw.tohoku-epco.co.jp/teideninfo/'},
+  tepco:   {name:'東京電力パワーグリッド', url:'https://teideninfo.tepco.co.jp/'},
+  chuden:  {name:'中部電力パワーグリッド', url:'https://teiden.powergrid.chuden.co.jp/p/index.html'},
+  rikuden: {name:'北陸電力送配電',         url:'https://www.rikuden.co.jp/nw/teiden/otj010.html'},
+  kepco:   {name:'関西電力送配電',         url:'https://www.kansai-td.co.jp/teiden-info/index.php'},
+  energia: {name:'中国電力ネットワーク',   url:'https://www.teideninfo.energia.co.jp/'},
+  yonden:  {name:'四国電力送配電',         url:'https://www.yonden.co.jp/nw/safety/teiden/'},
+  kyuden:  {name:'九州電力送配電',         url:'https://www.kyuden.co.jp/td_teiden/kyushu.html'},
+  okiden:  {name:'沖縄電力',               url:'https://www.okiden.co.jp/livelihood/teiden/teiden-info/'}
+};
+
+/* =========================================================
+   カテゴリ定義
+   link の種類:
+     url    … 固定の恒久リンク
+     search … 選択中の都道府県名を使った検索リンク（市区町村ごとの情報用）
+     power  … 選択中の都道府県に対応する電力会社の停電情報ページ
+     tel    … 電話発信
+   ========================================================= */
+var CATEGORIES = [
+  {
+    id:'quake', icon:'quake', title:'地震・気象の速報',
+    sub:'いま何が起きているかを知る',
+    links:[
+      {type:'url', title:'特務機関NERV防災', sub:'地震・津波・気象の速報が最も速い', url:'https://nerv.app/'},
+      {type:'url', title:'Yahoo!防災速報', sub:'地域を登録すると通知が届く', url:'https://emg.yahoo.co.jp/'},
+      {type:'url', title:'NHK ニュース・防災', sub:'テレビと同じ最新ニュースを見る', url:'https://www3.nhk.or.jp/news/'},
+      {type:'url', title:'気象庁 防災情報', sub:'地震・大雨・警報の公式な地図', url:'https://www.jma.go.jp/bosai/map.html'}
+    ]
+  },
+  {
+    id:'shelter', icon:'shelter', title:'避難所・避難情報',
+    sub:'どこへ逃げればよいかを調べる',
+    links:[
+      {type:'search', title:'{PREF}の避難所を調べる', sub:'いま開いている避難所を検索します', q:'{PREF} 避難所 開設状況'},
+      {type:'url', title:'ハザードマップポータル', sub:'近くの避難場所と危険な場所を地図で確認（国土地理院）', url:'https://disaportal.gsi.go.jp/'}
+    ],
+    notices:[{type:'info', text:'避難所が開いているかどうかは市区町村が発表します。検索結果から、お住まいの市・町・村のページを開いてください。'}]
+  },
+  {
+    id:'power', icon:'power', title:'停電情報',
+    sub:'どの地域で電気が止まっているか',
+    links:[
+      {type:'power'},
+      {type:'search', title:'{PREF}の停電情報を調べる', sub:'上のページが開かないときはこちら', q:'{PREF} 停電情報'}
+    ],
+    notices:[{type:'info', text:'県境の一部の地域は、となりの電力会社の管内になっていることがあります。見つからないときは下の検索もお試しください。'}]
+  },
+  {
+    id:'water', icon:'water', title:'給水・食料の配布',
+    sub:'水や食べ物をどこでもらえるか',
+    links:[
+      {type:'search', title:'{PREF}の給水所を調べる', sub:'水がもらえる場所を検索します', q:'{PREF} 給水所 給水車'},
+      {type:'search', title:'{PREF}の物資配布を調べる', sub:'食料・生活用品の配布場所を検索します', q:'{PREF} 支援物資 配布'}
+    ],
+    notices:[{type:'info', text:'給水や配布の場所は市区町村が発表します。検索結果から、お住まいの市・町・村のページを開いてください。'}]
+  },
+  {
+    id:'support', icon:'support', title:'支援の状況・国の対応',
+    sub:'国がいま何をしているかを知る',
+    links:[
+      {type:'url', title:'内閣府 防災情報', sub:'被害の状況と、国からの物資支援（プッシュ型支援）の状況', url:'https://www.bousai.go.jp/updates/'},
+      {type:'url', title:'国土交通省 災害・防災情報', sub:'道路・鉄道・空港・船の状況と復旧の見通し', url:'https://www.mlit.go.jp/saigai/'}
+    ],
+    notices:[{type:'info', text:'どちらのページも、新しい災害が起きるたびに一番上に最新の情報が並びます。'}]
+  },
+  {
+    id:'comm', icon:'comm', title:'連絡手段（つながらない時）',
+    sub:'電話やネットが使えないときに',
+    always:true,
+    links:[
+      {type:'tel', title:'171 に電話をかける', sub:'災害用伝言ダイヤル。押すとすぐ発信します', tel:'171'},
+      {type:'url', title:'171 の使い方', sub:'録音・再生のやり方（NTT東日本）', url:'https://www.ntt-east.co.jp/saigai/voice171/'},
+      {type:'url', title:'災害用伝言板 web171', sub:'文字で安否を伝える・確認する', url:'https://www.web171.jp/'},
+      {type:'url', title:'00000JAPAN（ファイブゼロジャパン）とは', sub:'大きな災害のとき無料で使えるWi-Fi', url:'https://www.wlan-business.org/archives/tag/00000japan'}
+    ],
+    notices:[
+      {type:'notice', title:'00000JAPAN を使うときの注意', text:'誰でもすぐつなげるように、通信が暗号化されていません。ID・パスワードの入力や、クレジットカード・銀行の操作は行わないでください。安否の確認やニュースを見るのに使ってください。'},
+      {type:'info', text:'このアプリは、一度開いておけばインターネットがつながらなくても画面は表示されます。ただし、リンク先の情報を見るには通信が必要です。'}
+    ]
+  },
+  {
+    id:'prepare', icon:'prepare', title:'ふだんの備え',
+    sub:'災害が起きる前に読んでおく',
+    links:[
+      {type:'url', title:'家庭備蓄ポータル', sub:'水や食料をどれだけ備えればよいか（農林水産省）', url:'https://www.maff.go.jp/j/zyukyu/foodstock/'},
+      {type:'url', title:'ハザードマップポータル', sub:'自分の家がどんな危険のある場所か確認する', url:'https://disaportal.gsi.go.jp/'}
+    ]
+  }
+];
+
+/* 災害種別 → 上に出すカテゴリの順番 */
+var DISASTERS = [
+  {id:'quake', label:'地震',      ico:'🏚', priority:['quake','shelter','water','support']},
+  {id:'flood', label:'大雨・洪水', ico:'🌧', priority:['shelter','quake','water','support']},
+  {id:'power', label:'停電',      ico:'💡', priority:['power','quake','support']},
+  {id:'water', label:'断水',      ico:'🚰', priority:['water','shelter','support']}
+];
+
+/* =========================================================
+   状態管理（保存先はブラウザの localStorage のみ。外部送信なし）
+   ========================================================= */
+var KEY_PREF = 'bousai-hub.pref';
+var KEY_DIS  = 'bousai-hub.disaster';
+
+var state = {
+  pref: null,      // 例: '熊本県'
+  disaster: null,  // 例: 'quake'
+  screen: 'top',
+  categoryId: null,
+  pendingPref: null
+};
+
+function loadState(){
+  try {
+    var p = localStorage.getItem(KEY_PREF);
+    if (p && findPref(p)) state.pref = p;
+    var d = localStorage.getItem(KEY_DIS);
+    if (d && DISASTERS.some(function(x){ return x.id === d; })) state.disaster = d;
+  } catch (e) { /* プライベートモード等で使えない場合は未設定のまま動かす */ }
+}
+function save(key, val){
+  try { val === null ? localStorage.removeItem(key) : localStorage.setItem(key, val); } catch (e) {}
+}
+function findPref(name){
+  for (var i = 0; i < PREFS.length; i++) if (PREFS[i][0] === name) return PREFS[i];
+  return null;
+}
+
+/* =========================================================
+   DOM 生成ヘルパー
+   ※ 文字はすべて textContent で入れる（innerHTML は自作のSVG定数のみに使う）
+   ========================================================= */
+function el(tag, cls){ var n = document.createElement(tag); if (cls) n.className = cls; return n; }
+function svgIcon(key, cls){
+  var s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  s.setAttribute('viewBox', '0 0 24 24');
+  s.setAttribute('aria-hidden', 'true');
+  if (cls) s.setAttribute('class', cls);
+  s.innerHTML = ICONS[key] || '';
+  return s;
+}
+function iconBox(key){ var b = el('span', 'icon'); b.appendChild(svgIcon(key)); return b; }
+function fillPref(text){ return text.replace(/\{PREF\}/g, state.pref || 'お住まいの地域'); }
+
+var $ = function(id){ return document.getElementById(id); };
+
+/* =========================================================
+   トップ画面
+   ========================================================= */
+function renderChips(){
+  var box = $('chips');
+  box.textContent = '';
+  DISASTERS.forEach(function(d){
+    var b = el('button', 'chip');
+    b.type = 'button';
+    b.setAttribute('aria-pressed', state.disaster === d.id ? 'true' : 'false');
+    var i = el('span', 'ico'); i.textContent = d.ico;
+    var t = document.createElement('span'); t.textContent = d.label;
+    b.appendChild(i); b.appendChild(t);
+    b.addEventListener('click', function(){
+      state.disaster = (state.disaster === d.id) ? null : d.id;
+      save(KEY_DIS, state.disaster);
+      renderChips();
+      renderCards();
+    });
+    box.appendChild(b);
+  });
+  $('chipNote').textContent = state.disaster
+    ? 'もう一度押すと、選択を解除できます。'
+    : '選ぶと、必要な情報が一番上に出てきます。';
+}
+
+function orderedCategories(){
+  var d = null;
+  for (var i = 0; i < DISASTERS.length; i++) if (DISASTERS[i].id === state.disaster) d = DISASTERS[i];
+  if (!d) return CATEGORIES.map(function(c){ return { cat:c, priority:false }; });
+
+  var out = [], used = {};
+  d.priority.forEach(function(id){
+    CATEGORIES.forEach(function(c){ if (c.id === id && !used[id]) { out.push({ cat:c, priority:true }); used[id] = 1; } });
+  });
+  // 連絡手段は災害種別に関わらず、強調表示の直後に必ず置く
+  CATEGORIES.forEach(function(c){ if (c.always && !used[c.id]) { out.push({ cat:c, priority:false }); used[c.id] = 1; } });
+  CATEGORIES.forEach(function(c){ if (!used[c.id]) out.push({ cat:c, priority:false }); });
+  return out;
+}
+
+function renderCards(){
+  var box = $('cards');
+  box.textContent = '';
+  orderedCategories().forEach(function(item){
+    var c = item.cat;
+    var b = el('button', 'card' + (item.priority ? ' is-priority' : ''));
+    b.type = 'button';
+    b.appendChild(iconBox(c.icon));
+
+    var body = el('span', 'body');
+    if (item.priority){ var bd = el('span', 'badge'); bd.textContent = 'まず確認'; body.appendChild(bd); }
+    var t = el('span', 'ttl'); t.textContent = c.title;
+    var s = el('span', 'sub'); s.textContent = c.sub;
+    body.appendChild(t); body.appendChild(s);
+    b.appendChild(body);
+    b.appendChild(svgIcon('arrow', 'arw'));
+
+    b.addEventListener('click', function(){ go('detail', c.id); });
+    box.appendChild(b);
+  });
+}
+
+/* =========================================================
+   カテゴリ詳細画面
+   ========================================================= */
+function buildLink(link){
+  var a = el('a', 'linkcard');
+  a.appendChild(iconBox('ext'));   // 後で差し替える
+  var body = el('span', 'body');
+  var t = el('span', 'ttl');
+  var s = el('span', 'sub');
+
+  if (link.type === 'power'){
+    var pref = findPref(state.pref);
+    var comp = pref ? POWER[pref[2]] : null;
+    if (!comp) return null;
+    a.href = comp.url;
+    t.textContent = comp.name + 'の停電情報';
+    s.textContent = (state.pref || '') + 'の停電状況を地図で確認できます';
+    a.replaceChild(iconBox('power'), a.firstChild);
+  } else if (link.type === 'search'){
+    a.className += ' is-search';
+    a.href = 'https://www.google.com/search?q=' + encodeURIComponent(fillPref(link.q));
+    t.textContent = fillPref(link.title);
+    s.textContent = link.sub;
+    a.replaceChild(iconBox('search'), a.firstChild);
+  } else if (link.type === 'tel'){
+    a.className += ' is-tel';
+    a.href = 'tel:' + link.tel;
+    t.textContent = link.title;
+    s.textContent = link.sub;
+    a.replaceChild(iconBox('phone'), a.firstChild);
+  } else {
+    a.href = link.url;
+    t.textContent = link.title;
+    s.textContent = link.sub;
+  }
+
+  if (link.type !== 'tel'){
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+  }
+  body.appendChild(t); body.appendChild(s);
+  a.appendChild(body);
+  a.appendChild(svgIcon(link.type === 'tel' ? 'phone' : 'ext', 'ext'));
+  return a;
+}
+
+function renderDetail(){
+  var cat = null;
+  for (var i = 0; i < CATEGORIES.length; i++) if (CATEGORIES[i].id === state.categoryId) cat = CATEGORIES[i];
+  if (!cat) { go('top'); return; }
+
+  $('detailLead').textContent = cat.links.length > 1 ? '開くものを選んでください' : '下のボタンから開いてください';
+
+  var box = $('detailLinks');
+  box.textContent = '';
+  cat.links.forEach(function(link){
+    var node = buildLink(link);
+    if (node) box.appendChild(node);
+  });
+
+  var nb = $('detailNotices');
+  nb.textContent = '';
+  (cat.notices || []).forEach(function(n){
+    var d = el('div', n.type === 'notice' ? 'notice' : 'info');
+    if (n.title){ var b = document.createElement('b'); b.textContent = n.title; d.appendChild(b); }
+    d.appendChild(document.createTextNode(n.text));
+    nb.appendChild(d);
+  });
+}
+
+/* =========================================================
+   地域変更画面
+   ========================================================= */
+function renderPrefList(){
+  var kw = ($('prefSearch').value || '').trim().toLowerCase();
+  var box = $('prefList');
+  box.textContent = '';
+  var hit = 0;
+
+  PREFS.forEach(function(p){
+    if (kw && p[0].toLowerCase().indexOf(kw) < 0 && p[1].indexOf(kw) < 0) return;
+    hit++;
+    var b = el('button', 'prefbtn');
+    b.type = 'button';
+    b.setAttribute('aria-pressed', state.pendingPref === p[0] ? 'true' : 'false');
+    var t = document.createElement('span'); t.textContent = p[0];
+    b.appendChild(t);
+    b.appendChild(svgIcon('check', 'ck'));
+    b.addEventListener('click', function(){
+      state.pendingPref = p[0];
+      renderPrefList();
+      $('prefDecide').disabled = false;
+    });
+    box.appendChild(b);
+  });
+
+  $('prefEmpty').hidden = hit > 0;
+}
+
+/* =========================================================
+   画面遷移（端末の「戻る」操作にも対応させる）
+   ========================================================= */
+function go(screen, categoryId, replace){
+  state.screen = screen;
+  state.categoryId = categoryId || null;
+  var st = { screen: screen, categoryId: state.categoryId || null };
+  try {
+    replace ? history.replaceState(st, '') : history.pushState(st, '');
+  } catch (e) {}
+  render();
+}
+
+function render(){
+  var isTop = state.screen === 'top';
+  $('scrTop').hidden = !isTop;
+  $('scrDetail').hidden = state.screen !== 'detail';
+  $('scrRegion').hidden = state.screen !== 'region';
+
+  $('backBtn').hidden = isTop || (state.screen === 'region' && !state.pref);
+  $('hdRegion').hidden = !(isTop && state.pref);
+  if (state.pref) $('hdRegion').textContent = state.pref;
+
+  if (isTop){
+    $('hdTitle').textContent = '防災ハブ';
+    renderChips();
+    renderCards();
+  } else if (state.screen === 'detail'){
+    var cat = null;
+    for (var i = 0; i < CATEGORIES.length; i++) if (CATEGORIES[i].id === state.categoryId) cat = CATEGORIES[i];
+    $('hdTitle').textContent = cat ? cat.title : '防災ハブ';
+    renderDetail();
+  } else {
+    $('hdTitle').textContent = '地域を選ぶ';
+    $('regionLead').textContent = state.pref
+      ? 'お住まいの都道府県を選んでください。停電・避難所・給水の情報がこの地域に切り替わります。'
+      : 'はじめに、お住まいの都道府県を選んでください。停電・避難所・給水の情報がこの地域のものになります。';
+    state.pendingPref = state.pref;
+    $('prefDecide').disabled = !state.pendingPref;
+    renderPrefList();
+  }
+  window.scrollTo(0, 0);
+}
+
+/* =========================================================
+   起動
+   ========================================================= */
+function init(){
+  loadState();
+
+  $('backBtn').addEventListener('click', function(){ history.back(); });
+  $('toRegion').addEventListener('click', function(){ go('region'); });
+  $('prefSearch').addEventListener('input', renderPrefList);
+  $('prefDecide').addEventListener('click', function(){
+    if (!state.pendingPref) return;
+    var first = !state.pref;
+    state.pref = state.pendingPref;
+    save(KEY_PREF, state.pref);
+    first ? go('top', null, true) : history.back();
+  });
+
+  window.addEventListener('popstate', function(ev){
+    var st = ev.state || { screen: 'top' };
+    state.screen = st.screen || 'top';
+    state.categoryId = st.categoryId || null;
+    render();
+  });
+
+  // 地域が未設定のときは、最初に地域選択から始める（迷わせないため）
+  go(state.pref ? 'top' : 'region', null, true);
+
+  if ('serviceWorker' in navigator){
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('./sw.js').catch(function(){ /* オフライン化に失敗してもアプリ自体は動く */ });
+    });
+  }
+}
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "name": "防災ハブ",
+  "short_name": "防災ハブ",
+  "description": "災害のときに必要なアプリと公式情報の入口を、1つにまとめたリンク集です。",
+  "lang": "ja",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "id": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F1F4F8",
+  "theme_color": "#C62828",
+  "icons": [
+    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
