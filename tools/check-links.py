@@ -49,6 +49,14 @@ SSL_CTX.verify_mode = ssl.CERT_NONE
 SAMPLE_ONLY_HOSTS = ('crisis.yahoo.co.jp',)
 
 
+# 「リンクが死んだ」とは断定できないステータス。
+#  403 … サイトが自動アクセスや海外からのアクセスを拒否している場合が多い。
+#        GitHub Actionsの実行サーバーは海外にあるため、日本の電力会社や自治体が
+#        正常稼働していても403を返すことが実際にあった。
+#  5xx … 一時的な不調。次回の点検で回復していることが多い。
+AMBIGUOUS_STATUS = ('401', '403', '429', '500', '502', '503', '504')
+
+
 def fetch(url):
     """(ステータス文字列, ページタイトル) を返す"""
     req = urllib.request.Request(url, headers={
@@ -122,17 +130,26 @@ def name_tokens(name, yomi):
 
 
 def load_app_links():
-    """index.html に直接書かれている固定URL（県公式・防災ポータル・電力会社など）"""
+    """index.html に直接書かれている固定URL（県公式・防災ポータル・電力会社など）
+
+    注意: ソース内には
+        'https://teideninfo.tepco.co.jp/flash/' + pref[3] + '000000000.html'
+    のように、変数と連結して完成させるURLがある。
+    この「連結の途中」を単独のURLとして点検すると、実在しないURLを叩いて
+    誤検知になる。閉じクォートの直後が `+` のものは除外する。
+    """
     src = open(os.path.join(ROOT, 'index.html'), encoding='utf-8').read()
-    urls = set(re.findall(r"https://[a-zA-Z0-9./_%#?=&@-]+", src))
     cleaned = set()
-    for u in urls:
-        u = u.rstrip("',)\"")
-        if 'w3.org' in u or 'openxmlformats' in u:
+    # クォートで囲まれたURLを、直後に連結演算子が続くかどうかも含めて拾う
+    for m in re.finditer(r"['\"](https://[a-zA-Z0-9./_%#?=&@:-]+)['\"](\s*\+)?", src):
+        url, concat = m.group(1), m.group(2)
+        if concat:
+            continue                      # 連結の途中なので単独では実在しない
+        if 'w3.org' in url or 'openxmlformats' in url:
             continue
-        if any(h in u for h in SAMPLE_ONLY_HOSTS):
-            continue          # 同一サーバー集中を避ける。別途サンプルで確認する
-        cleaned.add(u)
+        if any(h in url for h in SAMPLE_ONLY_HOSTS):
+            continue                      # 同一サーバー集中を避け、別途サンプルで確認する
+        cleaned.add(url)
     return sorted(cleaned)
 
 
@@ -159,6 +176,9 @@ def check_city(item):
         # このスクリプトからだけ失敗する自治体サイトが実在する（TLS構成や文字コードの都合）。
         # 実ブラウザでは開けることが多いので、断定せず「要確認」に留める。
         return (name, url, status, title, 'warn', 'スクリプトから接続できず（ブラウザで要確認）')
+    if status in AMBIGUOUS_STATUS:
+        return (name, url, status, title, 'warn',
+                '自動アクセスまたは海外からのアクセスを拒否している可能性（ブラウザで要確認）')
     if not status.startswith('2'):
         return (name, url, status, title, 'error', 'アクセスできない')
 
@@ -184,7 +204,7 @@ def main():
     with ThreadPoolExecutor(max_workers=8) as ex:
         for url, (status, title) in zip(app_links, ex.map(fetch, app_links)):
             checked += 1
-            if status.startswith('ERR'):
+            if status.startswith('ERR') or status in AMBIGUOUS_STATUS:
                 warns.append(f'- [固定リンク] {url} → {status}（ブラウザで要確認）')
             elif not status.startswith('2'):
                 errors.append(f'- [固定リンク] {url} → **{status}**')
@@ -233,6 +253,9 @@ def main():
         print('---')
         print('- 一部の自治体サイトは、このスクリプトからのアクセスだけ失敗することがあります'
               '（TLS構成や文字コードの都合）。実ブラウザでは正常なことが多いです。')
+        print('- **GitHub Actionsの実行サーバーは海外にあります。** 日本の電力会社や自治体には'
+              '海外からのアクセスを拒否する設定のところがあり、正常稼働していても403が返ります。'
+              '「要確認」に403が出た場合は、まず日本国内のブラウザで開いて確認してください。')
         print('- 「一般ドメインでタイトルに自治体名が見当たらない」は、ドメインが別の主体に'
               '渡っている可能性を示します。過去に自治体名を含むドメインが詐欺サイトになっていた例があるため、'
               '必ず目視で確認してください。')
